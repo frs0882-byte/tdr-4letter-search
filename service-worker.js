@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tdr-4letter-v34-pwa-install-ready';
+const CACHE_NAME = 'tdr-4letter-v35-fresh-install';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

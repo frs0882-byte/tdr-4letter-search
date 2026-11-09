@@ -1,9 +1,9 @@
 {
-  "id": "tdr-4letter-search-pwa",
+  "id": "tdr-4letter-search-app-v2",
   "name": "TDR 4レター施設検索",
   "short_name": "4レター検索",
   "description": "東京ディズニーリゾート空調保全用 4レター施設コード検索・逆引きナビ",
-  "start_url": "./index.html",
+  "start_url": "./index.html?install=v2",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0f172a",
