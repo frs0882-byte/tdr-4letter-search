@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>TDR 4レター施設検索 | 空調保全ナビ</title>
+  
+  <!-- PWA & Mobile Meta Tags -->
+  <meta name="description" content="東京ディズニーリゾート（TDL・TDS・共通バックヤード・ホテル）の施設4レターコード検索・逆引きツール">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="4レター検索">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=v33">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png?v=v33">
+
+  <!-- クリティカル・インラインCSS（キャッシュ未更新やロード遅延時でもスプラッシュやレイアウトが崩壊するのを物理的に防ぐ） -->
+  <style>
+    /* ティンカーベル魔法＆城ライトアップの初期クリティカルスタイル */
+    .splash-tinker-cinematic {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+      display: none;
+    }
+    .splash-tinker-cinematic.active {
+      display: block !important;
+    }
+    .tink-castle-viewport {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+    }
+    .intro-cinematic-stage {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+      background: #020617 !important;
+      transform-origin: center 38% !important;
+    }
+    .intro-castle-layer {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background-size: cover !important;
+      background-position: center 36% !important;
+      transform-origin: center center !important;
+    }
+    .intro-castle-dark {
+      background-image: url('assets/castle_dark.jpg') !important;
+    }
+    .intro-castle-lit {
+      background-image: url('assets/castle_lit.jpg') !important;
+    }
+    .intro-official-logo {
+      position: relative !important;
+      width: 172px !important;
+      height: 172px !important;
+      object-fit: contain !important;
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      /* 金属八角形のアウトラインそのものに沿って落ちる立体シャドウ＆ゴールド光彩 */
+      filter: drop-shadow(0 0 10px rgba(254, 240, 138, 0.65)) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.75)) !important;
+    }
+    /* 4Lコードの純白ソリッド表示保証（グラデーションを完全撤廃） */
+    .code-pill span.code-text {
+      background: none !important;
+      -webkit-background-clip: unset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      color: #ffffff !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 1px rgba(0, 0, 0, 0.9) !important;
+      font-weight: 900 !important;
+    }
+    /* 検索ハイライトの初期視認性保証（黄色のベタ塗りを完全排除） */
+    mark, mark.hl {
+      background: rgba(14, 165, 233, 0.28) !important;
+      color: #38bdf8 !important;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+    .code-pill mark.hl {
+      background: rgba(14, 165, 233, 0.25) !important;
+      color: #67e8f9 !important;
+      border-bottom: 2.5px solid #38bdf8 !important;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.85);
+      padding: 0 2px;
+    }
+    /* スプラッシュ画面：最優先で全画面オーバーレイ固定 */
+    #splashScreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      height: 100dvh !important;
+      z-index: 999999 !important;
+      background: #050811 !important;
+      display: flex;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: hidden !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+    #splashScreen.fade-out {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      display: none !important;
+    }
+    #splashScreen.hidden-splash {
+      display: none !important;
+    }
+    .splash-content {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      max-width: 90vw;
+    }
+    .splash-emblem-wrapper {
+      position: relative;
+      width: 175px !important;
+      height: 175px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px !important;
+    }
+    .splash-emblem {
+      width: 140px !important;
+      height: 140px !important;
+      max-width: 140px !important;
+      max-height: 140px !important;
+      border-radius: 30px !important;
+      object-fit: cover !important;
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.6), 0 10px 25px rgba(0,0,0,0.8) !important;
+      border: 1.5px solid rgba(245, 195, 65, 0.6) !important;
+    }
+    .splash-main-title {
+      font-size: 2.15rem !important;
+    }
+    .cyber-canvas-bg {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      height: 100dvh !important;
+      pointer-events: none !important;
+      z-index: 0 !important;
+    }
+    /* モバイルヘッダーの折り返し事故防止 */
+    .brand-bar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-wrap: nowrap !important;
+    }
+    .share-header-btn {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
+  </style>
+
+  <link rel="stylesheet" href="styles.css?v=20261102_v33">
+</head>
+<body>
+
+  <!-- オープニング・シネマティックスプラッシュ画面（3ステップ完全版） -->
+  <div id="splashScreen" class="splash-screen">
+    <!-- ステップ1 & 2: シンデレラ城（薄暗い城 → スーッとズームしながら一斉ライトアップ！） -->
+        <div id="introCastleStage" class="intro-cinematic-stage">
+      <!-- 1. ライトアップ前の薄暗いシンデレラ城（全景・テキスト一切なし） -->
+      <div id="introCastleDark" class="intro-castle-layer intro-castle-dark"></div>
+      <!-- 2. ライトアップ後の美麗シンデレラ城（下から上へと光が駆け上がる！） -->
+      <div id="introCastleLit" class="intro-castle-layer intro-castle-lit"></div>
+      
+    </div>
+
+    <!-- 映画的周辺減光（シネマティック・ビネット） -->
+    <div class="intro-vignette"></div>
+
+    <!-- ライトアップ点灯時の光彩フラッシュウェーブ -->
+    <div id="introIgniteFlare" class="intro-ignite-flare"></div>
+
+        
+
+        <!-- ステップ3: 画面中央に浮かび上がる採用公式ロゴ「4L」（ロイヤルサファイア×シャンパンゴールド） -->
+    <div id="introLogoReveal" class="intro-logo-reveal">
+      <div class="intro-logo-glow-disk"></div>
+      <div class="intro-logo-rays"></div>
+      <img src="assets/logo_4l_octagon_pure.png" alt="4L Official Monogram" class="intro-official-logo">
+    </div>
+
+    <!-- 画面下部の英語ローディングテキスト＆プログレスゲージ -->
+    <div class="intro-loader-bottom">
+      <div class="intro-loader-text">INITIALIZING SYSTEM ARCHIVE...</div>
+      <div class="intro-loader-track">
+        <div id="introLoaderBar" class="intro-loader-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 関係者認証（合言葉）オーバーレイ -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <img src="icons/icon-192.png?v=v33" alt="Castle Icon" class="auth-castle-icon">
+      <h1 class="auth-title">TDR 4レター施設検索</h1>
+      <div class="auth-badge">🔒 関係者専用ナビ</div>
+      <p class="auth-desc">
+        本ツールは現場関係者専用です。<br>
+        利用を開始するには「合言葉」を入力してください。<br>
+        <span class="auth-note">※一度入力すれば次回以降この端末では自動で省略されます</span>
+      </p>
+
+      <form id="authForm" class="auth-form" onsubmit="return false;">
+        <div class="auth-input-wrapper">
+          <input type="password" id="authInput" class="auth-input" placeholder="合言葉を入力" autocomplete="current-password" required>
+          <button type="button" id="authToggleVisibilityBtn" class="auth-eye-btn" title="表示切替">👁️</button>
+        </div>
+        <div id="authErrorMsg" class="auth-error-msg"></div>
+        <button type="submit" id="authSubmitBtn" class="auth-submit-btn">
+          <span>ロック解除</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- 背景サイバー空間：縦横・直角ターン・ネオングロー高速光ストリーム Canvas -->
+  <canvas id="cyberCanvas" class="cyber-canvas-bg" aria-hidden="true"></canvas>
+
+  <!-- 固定上部ヘッダー -->
+  <header class="header-wrapper">
+    <div class="brand-bar">
+      <div class="brand-title" id="headerLogoBtn" title="タップでオープニング演出を再生">
+        <div class="header-icon-glow-wrap">
+          <img src="icons/icon-192.png?v=v33" alt="Castle Icon" class="header-castle-icon">
+        </div>
+        <div class="brand-text-col">
+          <div class="brand-top-row">
+            <span class="brand-name">4レター検索</span>
+            <span class="badge">HVAC NAVI</span>
+          </div>
+          <div class="sys-status-indicator">
+            <span class="sys-status-dot"></span>
+            <span class="sys-status-text">SYSTEM READY · 1,412 UNITS</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn sound-btn" id="soundToggleBtn" title="効果音切り替え">
+          <span id="soundIcon">🔇</span>
+        </button>
+        <button class="icon-btn" id="openingSwitchBtn" title="オープニング演出の切り替え・再演（案A / 案B）" style="font-size: 0.95rem;">
+          🎬
+        </button>
+        <button class="share-header-btn" id="shareBtn" title="他の社員にQRコードで共有">
+          <span>📱 共有</span>
+        </button>
+        <button class="icon-btn" id="infoBtn" title="使い方・説明" onclick="alert('【TDR 4レター施設検索 - HVAC NAVI】\n\n・4レター（アルファベット）または施設名（日本語・かな・カナ）を入力すると瞬時に絞り込まれます。\n・4レターバッジをタップすると一発でコピーされます。\n・★でお気に入り登録。\n・カードをタップすると所属部屋や詳細が表示されます。\n・左上の城アイコンをタップするとオープニング演出が再生されます。\n・「📱 共有」ボタンで、現場の同僚にすぐQRコードを表示できます。')">
+          ℹ️
+        </button>
+      </div>
+    </div>
+
+    <!-- 検索バー -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon-left">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="4レター (NPRB等) または 施設名で検索…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="検索クリア">×</button>
+      </div>
+    </div>
+
+    <!-- パーク切り替えタブ -->
+    <div class="filter-tabs">
+      <button class="tab-btn active" data-park="ALL">
+        <span>すべて</span>
+        <span class="count">0</span>
+      </button>
+      <button class="tab-btn" data-park="TDL">
+        <span>TDL (ランド)</span>
+        <span class="count">0</span>
+      </button>
+      <button class="tab-btn" data-park="TDS">
+        <span>TDS (シー)</span>
+        <span class="count">0</span>
+      </button>
+      <button class="tab-btn" data-park="COM">
+        <span>COM (バックヤード)</span>
+        <span class="count">0</span>
+      </button>
+      <button class="tab-btn" data-park="TRF">
+        <span>TRF (外・ホテル)</span>
+        <span class="count">0</span>
+      </button>
+      <button class="tab-btn" data-park="FAV">
+        <span>★ お気に入り</span>
+        <span class="count">0</span>
+      </button>
+    </div>
+
+    <!-- エリア選択 & 検索件数 -->
+    <div class="area-filter-row">
+      <select id="areaSelect" class="area-select">
+        <option value="ALL">すべてのエリア</option>
+      </select>
+      <div id="resultSummary" class="result-summary">該当 <b>0</b> 件</div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="content-area">
+    <!-- 最近見た施設（クイック履歴） -->
+    <section id="quickChipsSection" class="quick-chips-section">
+      <div class="quick-chips-title">
+        <span>🕒 最近の閲覧</span>
+      </div>
+      <div id="quickChipsRow" class="chips-row"></div>
+    </section>
+
+    <!-- 施設カードリスト -->
+    <div id="facilityList" class="facility-list"></div>
+
+    <!-- 検索結果ゼロの表示 -->
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-state-icon">🔍</div>
+      <div class="empty-state-title">該当する施設が見つかりません</div>
+      <div class="empty-state-desc">4レター（大文字・小文字）や施設名、かな等を変えて検索してみてください。</div>
+    </div>
+  </main>
+
+  <!-- コピートースト -->
+  <div id="toast" class="toast">📋 コピーしました</div>
+
+  <!-- 詳細モーダル（ボトムシート） -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div style="font-size:0.8rem; font-weight:700; color:#94a3b8;">施設詳細情報</div>
+        </div>
+        <button id="modalCloseBtn" class="icon-btn" style="border:none; background:transparent; font-size:1.2rem;">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- 共有QRコードモーダル -->
+  <!-- オープニング演出 切り替え・比較モーダル -->
+  <div id="openingModalOverlay" class="modal-overlay">
+    <div class="modal-sheet" style="max-width: 420px; margin: auto;">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2 style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 0;">🎬 オープニング演出の比較・選択</h2>
+          <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; margin-top: 2px;">CANDIDATE COMPARISON</div>
+        </div>
+        <button class="modal-close-btn" onclick="document.getElementById('openingModalOverlay').classList.remove('open')">✕</button>
+      </div>
+
+      <div style="padding: 16px 20px 24px;">
+        <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-bottom: 16px;">
+          現在2つのオープニング案をご用意しています。<br>見比べてお好きな方を本番採用としてお選びいただけます。
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px;">
+          <!-- 本命：ティンカーベル魔法ボタン -->
+          <button id="selectModeTinkerBtn" class="btn-primary-glow" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; text-align: left; cursor: pointer; border-radius: 12px;">
+            <div>
+              <div style="font-size: 0.96rem; font-weight: 800; color: #fef08a;">✨ ティンカーベル魔法＆城ライトアップ（最新作）</div>
+              <div style="font-size: 0.72rem; color: #e2e8f0; margin-top: 3px;">80%ズームから光が飛び城に魔法 → 一斉点灯＆4L輝き</div>
+            </div>
+            <span style="font-size: 1.2rem; color: #fef08a; margin-left: 8px;">▶</span>
+          </button>
+
+          <!-- 案Aボタン -->
+          <button id="selectModeCyberBtn" class="btn-secondary-dark" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; text-align: left; border-color: rgba(56, 189, 248, 0.4); cursor: pointer; border-radius: 12px;">
+            <div>
+              <div style="font-size: 0.96rem; font-weight: 800; color: #38bdf8;">🛡️ サイバースキャン＆紋章（従来版・バックアップ済）</div>
+              <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">レーダー回転＆大型4L紋章エンブレム</div>
+            </div>
+            <span style="font-size: 1.2rem; color: #38bdf8; margin-left: 8px;">▶</span>
+          </button>
+        </div>
+
+        <button class="btn-secondary-dark" onclick="document.getElementById('openingModalOverlay').classList.remove('open')" style="width: 100%; border-radius: 10px; padding: 10px;">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shareModalOverlay" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-drag-handle"></div>
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div style="font-size:1.1rem; font-weight:800; color:#fff;">📱 同僚・スタッフに共有</div>
+        </div>
+        <button id="shareModalCloseBtn" class="icon-btn" style="border:none; background:transparent; font-size:1.2rem;">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:0.88rem; color:#cbd5e1; margin-bottom:4px;">
+          相手のスマホカメラで下のQRコードを読み取ってもらうと、すぐにこの検索画面が開きます！
+        </p>
+        
+        <!-- QRコード描画エリア -->
+        <div class="qr-card-box">
+          <div id="shareQrContainer"></div>
+        </div>
+
+        <!-- URL表示バー -->
+        <div class="share-url-box">
+          <span class="share-url-text" id="shareUrlDisplay">https://...</span>
+          <button class="card-btn" id="shareCopyUrlBtn" style="flex-shrink:0;">
+            📋 コピー
+          </button>
+        </div>
+
+        <!-- 合言葉案内バッジ -->
+        <div style="margin: 12px 0 6px; padding: 10px 14px; background: rgba(30, 41, 59, 0.7); border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 10px; font-size: 0.82rem; color: #cbd5e1;">
+          🔑 初回ログイン用 合言葉: <b style="color: #38bdf8; font-family: monospace; font-size: 1rem; letter-spacing: 1px;">tdr4l</b>
+          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 3px;">（一度入力した端末では次回から入力を省略します）</div>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="share-action-buttons">
+          <button class="btn-primary-glow" id="nativeShareBtn">
+            📲 スマホの共有メニューを開く (AirDrop / LINE)
+          </button>
+          <button class="btn-secondary-dark" onclick="document.getElementById('shareModalOverlay').classList.remove('open')">
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 軽量QRCode生成ライブラリ -->
+  <script src="qrcode.min.js?v=20261029_v7"></script>
+  <!-- データベース読み込み -->
+  <script src="facility-data.js?v=20261102_v33"></script>
+  <!-- アプリケーションロジック -->
+  <script src="cyber-bg.js?v=20261102_v33"></script>
+  <script src="app.js?v=20261102_v33"></script>
+
+  <!-- Service Worker 登録 & キャッシュ更新 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js?v=20261102_v34').then(reg => {
+          reg.update();
+        }).catch(err => {
+          console.log('SW registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
